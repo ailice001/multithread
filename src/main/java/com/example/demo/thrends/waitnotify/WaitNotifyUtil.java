@@ -4,8 +4,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.Random;
 
 // 使用一个类 实现多线程的变量共享模型
-public class WaitNotify extends Thread {
+public class WaitNotifyUtil extends Thread {
 
+    // 共享变量
     private boolean isMainRound = true;
 
     private CountDownLatch clusterEnd = null;  //并发线程控制  计数器
@@ -17,7 +18,7 @@ public class WaitNotify extends Thread {
     private int data; // 线程返回值
 
 
-    WaitNotify(String uuid) {
+    WaitNotifyUtil(String uuid) {
         init();
         this.uuid = uuid;
     }
@@ -29,8 +30,9 @@ public class WaitNotify extends Thread {
 
     @Override   // 多线程中 需要执行的方法
     public void run() {
-//        this.main_CountDownLatch(uuid);
-        this.main(uuid);
+        this.main_CountDownLatch(uuid);
+//        this.main_SynchronizedCode(uuid);
+//        this.main(uuid);
     }
 
     // method use CountDownLatch
@@ -42,12 +44,12 @@ public class WaitNotify extends Thread {
 
         this.data = data;
 
-        ThreadLocalTestBean.setKey(uuid, String.valueOf(data));
+        SharedConcurrentHashMap.setKey(uuid, String.valueOf(data));
 
         clusterEnd.countDown();// 线程完成 计数器减1
     }
 
-    // method use CountDownLatch
+    // method use CountDownLatch 局部锁
     public String sub_CountDownLatch(String uuid) {
         String result ;
        if (clusterEnd.getCount() != 0) {
@@ -57,61 +59,67 @@ public class WaitNotify extends Thread {
                e.printStackTrace();
            }
        }
-        result = ThreadLocalTestBean.getKey(uuid);
+        result = SharedConcurrentHashMap.getKey(uuid);
         return result;
     }
 
     public void main_SynchronizedCode(String uuid) {
         // 同步代码块方法  由于有执行时序的问题  所以一开始就获取锁
         synchronized(lock) {
-            ThreadLocalTestBean.setKey(uuid, String.valueOf(data));
-            try {
-                Thread.sleep(new Random().nextInt(10)*100);
+            final int data = new Random().nextInt();
+
+            this.data = data;
+            SharedConcurrentHashMap.setKey(uuid, String.valueOf(data));
+            /*try {
+                Thread.sleep(new Random().nextInt(10)*100); // 模拟不同的处理进度
             } catch (InterruptedException e) {
                 e.printStackTrace();
-            }
-            isMainRound = false;
-            try {
-                lock.wait();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            }*/
         }
+
     }
 
     // 同步代码块实现
     public String sub_SynchronizedCode(String uuid) {
         String result ;
-        synchronized (lock) { // 等 main释放锁 再执行
-            result = ThreadLocalTestBean.getKey(uuid);
+        synchronized (lock) { // 局部对象锁 等 main释放锁 再执行
+            result = SharedConcurrentHashMap.getKey(uuid);
         }
         return result;
     }
 
 
     // 共享变量中多线程通信模型1 wait-notify 模式
-    public synchronized void main(String uuid) {
+    private synchronized void main(String uuid) {
         // 共享变量实现同步
+        /*while(!isMainRound){
+            try {
+                this.wait(); // 使用类锁
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }*/
         final int data = new Random().nextInt();
         this.data = data;
-        System.out.println(String.format("%s , uuid %s , method : %s", Thread.currentThread().getName(), uuid, "main"));
-        ThreadLocalTestBean.setKey(uuid, String.valueOf(data));
+        System.out.println(String.format("main Thread->%s , uuid %s , method : %s", Thread.currentThread().getName(), uuid, "main"));
+        SharedConcurrentHashMap.setKey(uuid, String.valueOf(data));
+        isMainRound = false;
         this.notify();
     }
 
     // synchronized
     public synchronized String sub(String uuid) {
         // 实现线程通信
-        try {
-            this.wait();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        while(isMainRound){
+            try {
+                this.wait(); // 使用类锁
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
-
-        String   result = ThreadLocalTestBean.getKey(uuid);
+        String  result = SharedConcurrentHashMap.getKey(uuid);
         System.out.println(String.format("sub Thread->%s : uuid -> %s  data -> %s ,this data %d ", Thread.currentThread().getName(), uuid, result, this.data));
         return result;
-
     }
 
 }

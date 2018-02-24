@@ -7,7 +7,7 @@ import java.util.UUID;
 /**
  * Created by xuebinmeng on 2017/12/30.
  */
-public class ThreadTest {
+public class WaitNotifyTest {
 
     public static String getUUID() {
         //去掉“-”符号
@@ -18,12 +18,14 @@ public class ThreadTest {
 
         ThreadPoolUtil.init();
 
-        for (int i = 0; i < 300; i++) {
+        for (int i = 0; i < 1000; i++) {
             final int k = i;
             new Thread(() -> {
                 long start1 = System.currentTimeMillis();
                 String uuid = getUUID();
+                System.out.println(String.format("master Thread->%s : uuid -> %s ", Thread.currentThread().getName(), uuid));
 
+                // 业务控制类
                 WaitNotifyUtil waitNotifyUtil = new WaitNotifyUtil(uuid);
 
                 ThreadPoolUtil.doExcute(waitNotifyUtil);
@@ -34,6 +36,7 @@ public class ThreadTest {
             }).start();
 
         }
+
     }
 
 }

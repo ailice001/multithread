@@ -2,7 +2,7 @@ package com.example.demo.thrends.waitnotify;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ThreadLocalTestBean {
+public class SharedConcurrentHashMap {
     private static ConcurrentHashMap<String,String> key = new ConcurrentHashMap<>();
 
     public synchronized static String getKey(String uuid) {
