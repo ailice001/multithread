@@ -10,26 +10,6 @@ public class WaitNotifyDemo {
         // 同一个类实现高类聚 逻辑好控制
         Bussiness buss = new Bussiness();
 
-        //主线程100次
-        /*new Thread(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < 50; i++) {
-                    buss.main(i + 1);
-                }
-            }
-        }).start();*/
-
-        // 子线程50次
-       /* new Thread(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < 50; i++) {
-                    buss.sub(i + 1);
-                }
-            }
-        }).start();*/
-
         // java 8 实现
         new Thread(()->{ for (int i = 0; i < 50; i++) { buss.main(i + 1); }}).start();
         new Thread(()->{ for (int i = 0; i < 50; i++) { buss.sub(i + 1); }}).start();
